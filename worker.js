@@ -641,11 +641,13 @@ async function handleCompletions(request, env, pathname) {
 	};
 
 	const passthroughFields = [
-		'temperature', 'max_tokens', 'top_p', 'n',
+		'temperature', 'max_tokens', 'top_p', 'n', 'top_k',
 		'stop', 'presence_penalty', 'frequency_penalty',
 		'logprobs', 'top_logprobs', 'seed', 'user',
 		'tools', 'tool_choice', 'parallel_tool_calls',
 		'response_format',
+		// 思考开关：glm/qwen 系列靠这两个字段控制，不透传会一直开思考，白烧 neurons
+		'chat_template_kwargs', 'reasoning_effort',
 	];
 	for (const field of passthroughFields) {
 		if (body[field] !== undefined) cfPayload[field] = body[field];
