@@ -1,0 +1,19 @@
+# 复制为 wrangler.toml 后，把 database_id 换成你自己的
+name = "workersai2api"
+main = "worker.js"
+compatibility_date = "2026-11-22"
+
+# 关键：wrangler 部署时保留 Dashboard 上配置的变量与 Secret，避免被清空
+keep_vars = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "workersai2api"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+# 被监控的 Worker 名称，按需修改
+HEALTH_SCRIPT_NAME = "tc033"
