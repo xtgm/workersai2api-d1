@@ -1,0 +1,17 @@
+# Cloudflare Workers Builds（GitHub 集成）会用这个文件部署
+name = "workersai2api-d1"
+main = "worker.js"
+compatibility_date = "2026-11-22"
+
+# 部署时保留 Dashboard 上配置的变量与 Secret
+keep_vars = true
+
+# 部署时保留 Dashboard 上手动绑定的 D1（本文件不写 database_id，避免公开仓库带库 ID）
+keep_bindings = ["d1"]
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+# 被监控的 Worker 名称，按需修改
+HEALTH_SCRIPT_NAME = "tc033"

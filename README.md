@@ -8,39 +8,49 @@ Cloudflare Workers AI → OpenAI 兼容接口。纯 D1 存储，不依赖 KV。
 
 | 文件 | 作用 | 怎么用 |
 |---|---|---|
-| `worker.js` | 全部后端逻辑，单文件 | 粘贴到 Worker 编辑器，或用 wrangler 部署 |
+| `worker.js` | 全部后端逻辑，单文件 | 由 `wrangler deploy` 部署，或手动粘贴到 Worker 编辑器 |
+| `wrangler.toml` | 部署配置 | GitHub 集成部署自动读取；本地部署直接 `npx wrangler deploy` |
 | `schema.sql` | D1 建表语句 | D1 控制台「查询」执行一次；不执行也会自动建表 |
-| `wrangler.toml.example` | 命令行部署配置模板 | 复制为 `wrangler.toml`，填 `database_id` |
 | `.gitignore` | git 忽略规则 | 不用管 |
 | `README.md` | 本文件 | — |
 
-## 部署
+## 部署（GitHub 集成，推荐）
 
-### 1. 建 D1
+### 1. Cloudflare 建 Worker 并连仓库
 
-控制台 →「存储和数据库」→「D1 SQL 数据库」→ 创建（名字随意，如 `workersai2api`）→ 复制 **Database ID**。
+「Workers 和 Pages」→「创建」→「Worker」→ 连接 GitHub → 选 `xtgm/workersai2api-d1`。
 
-建表二选一：
+构建设置：
 
-- D1 →「查询」→ 粘贴 `schema.sql` → 执行
-- 跳过，Worker 首次请求会自动建表
+| 项 | 值 |
+|---|---|
+| 构建命令 | 留空 |
+| 部署命令 | `npx wrangler deploy` |
+| 根目录 | `/` |
 
-### 2. 建 Worker
+`wrangler.toml` 里 `name = "workersai2api-d1"` 必须和 Cloudflare 上的 Worker 名一致，不一致会新建一个 Worker。
 
-「Workers 和 Pages」→「创建」→「Worker」→ 命名 → 部署 →「编辑代码」→ 粘贴 `worker.js` 全文 → 部署。
+### 2. 建 D1 并绑定
 
-### 3. 绑定 D1
+「存储和数据库」→「D1 SQL 数据库」→ 创建（如 `workersai2api`）。
 
 Worker →「设置」→「绑定」→ 添加 → D1 数据库：
 
 | 字段 | 值 |
 |---|---|
 | 变量名 | `DB` |
-| D1 数据库 | 上一步创建的库 |
+| D1 数据库 | 刚创建的库 |
 
 变量名必须是 `DB`，否则接口返回 500。
 
-### 4. 环境变量
+建表二选一：
+
+- D1 →「查询」→ 粘贴 `schema.sql` → 执行
+- 跳过，Worker 首次请求会自动建表
+
+`wrangler.toml` 带 `keep_bindings = ["d1"]`，后续重新部署不会清掉这个绑定。
+
+### 3. 环境变量
 
 Worker →「设置」→「变量和机密」：
 
@@ -51,11 +61,13 @@ Worker →「设置」→「变量和机密」：
 | `HEALTH_NOTIFY_TOKEN` | 否 | Telegram bot token |
 | `HEALTH_NOTIFY_CHAT_ID` | 否 | Telegram chat id |
 
-### 5. Cron
+`keep_vars = true` 保证重新部署不会清掉这些变量和 Secret。
 
-Worker →「设置」→「触发器」→ Cron → `*/5 * * * *`
+### 4. Cron
 
-### 6. 登录
+已写在 `wrangler.toml`，部署后自动生效：`*/5 * * * *`。
+
+### 5. 登录
 
 打开 `https://<Worker 域名>/admin`，用 `ADMIN_PASSWORD` 登录，添加账号。
 
@@ -66,6 +78,12 @@ Worker →「设置」→「触发器」→ Cron → `*/5 * * * *`
 | Workers AI: Read | 调模型 |
 | Account Analytics: Read | 用量统计 |
 | Workers Scripts: Read | 读 telemetry 日志 |
+
+## 部署（手动粘贴）
+
+1. 「Workers 和 Pages」→「创建」→「Worker」→ 命名 → 部署
+2. 「编辑代码」→ 粘贴 `worker.js` 全文 → 部署
+3. 按上面第 2~4 步绑定 D1、环境变量、Cron
 
 ## 接口
 
@@ -139,15 +157,12 @@ CREATE TABLE IF NOT EXISTS app_store (
 | `cache_usage_details` | 每账号明细 |
 | `model_health` | 健康状态与事件时间线 |
 
-## wrangler 部署
+## 本地 wrangler 部署
 
 ```bash
-cp wrangler.toml.example wrangler.toml      # 改 database_id
 npx wrangler d1 execute workersai2api --remote --file=schema.sql
 npx wrangler deploy
 ```
-
-`wrangler.toml` 带 `keep_vars = true`，不会清掉 Dashboard 的变量和 Secret。
 
 ## 限制
 
